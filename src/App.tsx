@@ -11,10 +11,13 @@ import './styles/global.css';
 import './styles/theme.css';
 import { Footer } from './components/Footer';
 
+
 export function App() {
+
   return (
     // Não é necessario  um elemento pai, pois o react te força a ter um
     <>
+
       <Container> 
           <Logo />
       </Container>
@@ -33,7 +36,7 @@ export function App() {
             <Input 
               id='task' 
               type='text' 
-              labelText='Vou trabalhar em' 
+              labelText="Task"
               placeholder='Digite sua tarefa'
               />
           </div>
