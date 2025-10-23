@@ -7,11 +7,15 @@ import type { TaskModel } from '../../models/TaskModel';
 import { useTaskContext } from '../../contexts/TaskContext/useTaskContext';
 import { getNextCycle } from '../../utils/getNextCycle';
 import { getNextCycleType } from '../../utils/getNextCycleType';
-import { formatSecondsToMinutes } from '../../utils/formatSecondsToMinutes';
+import { TaskActionTypes } from '../../contexts/TaskContext/taskActions';
+import { Tips } from '../Tips/index';
+import { TimerWorkerManager } from '../../workers/TimerWorkerManager';
+import { showMessage } from '../../adapters/showMessage';
 
 export function MainForm() {
-  const { state, setState } = useTaskContext();
+  const { state, dispatch } = useTaskContext();
   const taskNameInput = useRef<HTMLInputElement>(null);
+  const lastTaskName = state.tasks[state.tasks.length - 1]?.name || '';
 
   const nextCycle = getNextCycle(state.currentCycle);
   const nextCycleType = getNextCycleType(nextCycle);
@@ -19,59 +23,41 @@ export function MainForm() {
   function handleCreateTask(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    showMessage.dismiss();
+
     if (taskNameInput.current === null) return;
 
     const taskName = taskNameInput.current.value.trim();
 
     if (!taskName) {
-      alert('Por favor, digite uma tarefa');
+     showMessage.warn('Por favor, digite uma tarefa');
       return;
     }
 
     const newTask: TaskModel = {
       id: Date.now().toString(),
       name: taskName,
-      startDade: Date.now(),
+      startDate: Date.now(),
       completeDate: null,
-      interrruptDate: null,
+      interruptDate: null,
       duration: state.config[nextCycleType],
       type: 'workTime',
     };
 
-    const secondsRemaining = newTask.duration * 60;
-
-    setState(prevState => {
-      return {
-        ...prevState,
-        config: { ...prevState.config },
-        activeTask: newTask,
-        currentCycle: nextCycle,
-        secondsRemaining,
-        formattedSecondsRemaining: formatSecondsToMinutes(secondsRemaining),
-        tasks: [...prevState.tasks, newTask],
-        type: nextCycleType,
-      };
-    });
+    dispatch({ type: TaskActionTypes.START_TASK, payload: newTask });
+    showMessage.success('Task created');
   }
 
   function handleInterruptTask() {
-    setState(prevState => {
-      return {
-        ...prevState,
-        activeTask: null,
-        secondsRemaining: 0,
-        formattedSecondsRemaining: '00:00',
-        tasks: prevState.tasks.map(tasks => {
-          if(prevState.activeTask?.id === tasks.id){
-            return {
-              ...tasks,
-              interrruptDate: Date.now(),
-            };
-          }
-          return tasks;
-        })
-      };
-    });
+    showMessage.dismiss();
+
+    showMessage.info('Task interrupted');
+
+    dispatch({ type: TaskActionTypes.INTERRUPT_TASK });
+
+    const worker = TimerWorkerManager.getInstance();
+
+    worker.postMessage(state);
   }
 
   return (
@@ -84,11 +70,12 @@ export function MainForm() {
           placeholder='Digite sua tarefa'
           ref={taskNameInput}
           disabled={!!state.activeTask}
+          defaultValue={lastTaskName}
         />
       </div>
 
       <div className='formRow'>
-        <p>Proximo intervalor é de 25min</p>
+        <Tips />
       </div>
 
       {state.currentCycle > 0 && (
