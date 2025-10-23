@@ -7,7 +7,6 @@ export function NotFound() {
   return (
     <MainTemplate>
       <Container>
-        <h1>Página não encontrada</h1>
         <GenericHtml>
           <Heading>404 - Página não encontrada 🚀</Heading>
           <p>
